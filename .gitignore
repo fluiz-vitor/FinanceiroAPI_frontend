@@ -1,32 +1,98 @@
-# Dependências
+# ==========================================
+# Frontend Dependencies (Node / Package Managers)
+# ==========================================
 node_modules/
-
-# Variáveis de ambiente (NUNCA commitar!)
-.env
-.env.local
-.env.production
-.env.*.local
-
-# Logs
-*.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
 
-# IDE / Editores
-.vscode/
+# ==========================================
+# Environment Variables & Secrets (NUNCA commitar!)
+# ==========================================
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+*.env
+*.publishsettings
+
+# ==========================================
+# Build & Distribution Artifacts
+# ==========================================
+dist/
+build/
+out/
+.cache/
+.parcel-cache/
+
+# ==========================================
+# Python (Security Audit Tools & Scripts)
+# ==========================================
+.venv/
+venv/
+env/
+ENV/
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+# ==========================================
+# Documentation & Security Audit Artifacts
+# ==========================================
+docs/
+
+# ==========================================
+# Cloud / Azure Deployment Tools
+# ==========================================
+.azure/
+.swa/
+.swa-cli/
+
+# ==========================================
+# IDEs & Code Editors
+# ==========================================
+.vscode/*
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
+.history/
+
+# ==========================================
+# Certificates & Private Keys
+# ==========================================
+*.pem
+*.key
+*.pfx
+*.cer
+*.crt
+*.secret
+*.token
+
+# ==========================================
+# Operating System & Temp Files
+# ==========================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 desktop.ini
-
-# Build / Dist
-dist/
-build/
-out/
-
-# Arquivos do sistema operacional
 *.tmp
 *.bak
-*.cache
+*.log

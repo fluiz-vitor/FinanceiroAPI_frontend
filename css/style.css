@@ -388,23 +388,27 @@ body > button:not(.dark-mode-toggle):hover {
     margin-right: 6px;
 }
 
+#tabelaPagamentos button.btn-editar,
 #tabelaPagamentos button[onclick*="editarPagamento"] {
     background: linear-gradient(90deg, #2a7fff, #1a5fd0);
     color: #fff;
     box-shadow: 0 4px 12px rgba(42, 127, 255, 0.25);
 }
 
+#tabelaPagamentos button.btn-editar:hover,
 #tabelaPagamentos button[onclick*="editarPagamento"]:hover {
     transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(42, 127, 255, 0.35);
 }
 
+#tabelaPagamentos button.btn-excluir,
 #tabelaPagamentos button[onclick*="excluirPagamento"] {
     background: linear-gradient(90deg, var(--red), var(--red-2));
     color: #fff;
     box-shadow: 0 4px 12px rgba(229, 69, 69, 0.25);
 }
 
+#tabelaPagamentos button.btn-excluir:hover,
 #tabelaPagamentos button[onclick*="excluirPagamento"]:hover {
     transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(229, 69, 69, 0.35);
