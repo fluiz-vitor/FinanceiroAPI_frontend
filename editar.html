@@ -16,7 +16,7 @@
     <script src="js/darkmode.js"></script>
 
     <nav class="nav-bar">
-        <a href="cadastro.html" class="active">Cadastro</a>
+        <a href="cadastro.html">Cadastro</a>
         <span class="separator">•</span>
         <a href="listagem.html">Listagem</a>
     </nav>
@@ -58,11 +58,12 @@
             <label for="anexo">Anexar arquivo:</label>
             <input type="file" id="anexo" name="anexo">
         </div>
-        <button type="button" onclick="atualizarPagamento()">Atualizar</button>
+        <button type="button" id="btnAtualizarPagamento" onclick="atualizarPagamento()">Atualizar</button>
         <button type="button" onclick="limparFormulario()">Limpar</button><br><br>
         <button type="button" onclick="window.location.href='listagem.html'">Ver pagamentos cadastrados</button>
     </form>
 
+    <script src="js/config.js"></script>
     <script src="js/editar.js"></script>
 </body>
 

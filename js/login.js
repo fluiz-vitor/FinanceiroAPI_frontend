@@ -1,10 +1,4 @@
-const URL_API = "https://financeiro-api-lopes-h7hcgub8f3aggmdn.centralus-01.azurewebsites.net/api/Auth";
-
-// Usuário/senha temporários, só pra testar enquanto a API está indisponível.
-// IMPORTANTE: remover isso quando a API voltar a funcionar de forma estável.
-const MODO_TEMPORARIO_ATIVO = true;
-const USUARIO_TEMPORARIO = "admin";
-const SENHA_TEMPORARIA = "teste123";
+const URL_API = (typeof CONFIG !== "undefined" ? CONFIG.API_BASE_URL : "https://financeiro-api-lopes-h7hcgub8f3aggmdn.centralus-01.azurewebsites.net/api") + "/Auth";
 
 async function fazerLogin() {
     const nomeUsuario = document.getElementById("nomeUsuario").value;
@@ -18,9 +12,13 @@ async function fazerLogin() {
         return;
     }
 
+    if (botao && botao.disabled) {
+        return;
+    }
+
     botao.disabled = true;
-    const textoOriginalBotao = botao.innerHTML;
-    botao.innerHTML = "Entrando...";
+    const textoOriginalBotao = botao.textContent;
+    botao.textContent = "Entrando...";
 
     try {
         const resposta = await fetch(`${URL_API}/login`, {
@@ -40,19 +38,11 @@ async function fazerLogin() {
         window.location.href = "cadastro.html";
 
     } catch (erro) {
-        // Se a API estiver fora do ar e o modo temporário estiver ativo, permite entrar mesmo assim.
-        if (MODO_TEMPORARIO_ATIVO && nomeUsuario === USUARIO_TEMPORARIO && senha === SENHA_TEMPORARIA) {
-            sessionStorage.setItem("tokenAcesso", "token-temporario-sem-api");
-            sessionStorage.setItem("nomeUsuario", nomeUsuario);
-            window.location.href = "cadastro.html";
-            return;
-        }
-
-        mostrarErro("Não foi possível conectar à API.");
+        mostrarErro("Não foi possível conectar ao servidor.");
         console.error(erro);
     } finally {
         botao.disabled = false;
-        botao.innerHTML = textoOriginalBotao;
+        botao.textContent = textoOriginalBotao;
     }
 }
 
