@@ -5,6 +5,68 @@ function obterIdDaUrl() {
     return parametros.get("id");
 }
 
+function validarCnpj(cnpj) {
+    if (!cnpj) return false;
+    const numeros = cnpj.replace(/\D/g, "");
+    if (numeros.length !== 14) return false;
+    if (/^(\d)\1+$/.test(numeros)) return false;
+
+    const multiplicador1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const multiplicador2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+
+    let soma = 0;
+    for (let i = 0; i < 12; i++) {
+        soma += parseInt(numeros.charAt(i), 10) * multiplicador1[i];
+    }
+    let resto = soma % 11;
+    const digito1 = resto < 2 ? 0 : 11 - resto;
+
+    soma = 0;
+    for (let i = 0; i < 13; i++) {
+        soma += parseInt((numeros.substring(0, 12) + digito1).charAt(i), 10) * multiplicador2[i];
+    }
+    resto = soma % 11;
+    const digito2 = resto < 2 ? 0 : 11 - resto;
+
+    return numeros.endsWith(`${digito1}${digito2}`);
+}
+
+function normalizarValor(valor) {
+    if (!valor) return "";
+    let v = valor.trim().replace(/^R\$\s?/, "");
+    if (v.includes(".") && !v.includes(",")) {
+        const partes = v.split(".");
+        if (partes.length === 2 && partes[1].length <= 2) {
+            v = `${partes[0]},${partes[1]}`;
+        }
+    }
+    return v;
+}
+
+async function extrairMensagemErro(resposta, mensagemPadrao) {
+    try {
+        const texto = await resposta.text();
+        if (!texto || !texto.trim()) {
+            return `${mensagemPadrao} (HTTP ${resposta.status})`;
+        }
+        try {
+            const erroJson = JSON.parse(texto);
+            if (erroJson.mensagem) return erroJson.mensagem;
+            if (erroJson.message) return erroJson.message;
+            if (erroJson.errors && typeof erroJson.errors === "object") {
+                const mensagens = Object.values(erroJson.errors).flat();
+                if (mensagens.length > 0) return mensagens.join("\n");
+            }
+            if (erroJson.title) return erroJson.title;
+        } catch {
+            return texto.trim();
+        }
+        return texto.trim();
+    } catch {
+        return `${mensagemPadrao} (HTTP ${resposta.status})`;
+    }
+}
+
 async function carregarDadosParaEdicao() {
     const id = obterIdDaUrl();
 
@@ -79,17 +141,67 @@ async function atualizarPagamento() {
         return;
     }
 
+    const razaoSocialPagador = document.getElementById("razaoSocialPagador").value.trim();
+    const cnpjPagador = document.getElementById("cnpjPagador").value.trim();
+    const fornecedor = document.getElementById("fornecedor").value.trim();
+    const cnpjFornecedor = document.getElementById("cnpjFornecedor").value.trim();
+    const valorTotalRaw = document.getElementById("valorTotal").value;
+    const valorTotal = normalizarValor(valorTotalRaw);
+    const dataVencimento = document.getElementById("dataVencimento").value.trim();
+    const observacoes = document.getElementById("observacoes").value.trim();
+
+    if (!razaoSocialPagador) {
+        alert("Por favor, preencha a Razão Social do Pagador.");
+        document.getElementById("razaoSocialPagador").focus();
+        return;
+    }
+    if (!cnpjPagador) {
+        alert("Por favor, preencha o CNPJ do Pagador.");
+        document.getElementById("cnpjPagador").focus();
+        return;
+    }
+    if (!validarCnpj(cnpjPagador)) {
+        alert("CNPJ do pagador inválido. Digite um CNPJ válido com 14 dígitos.");
+        document.getElementById("cnpjPagador").focus();
+        return;
+    }
+    if (!fornecedor) {
+        alert("Por favor, preencha o Fornecedor.");
+        document.getElementById("fornecedor").focus();
+        return;
+    }
+    if (!cnpjFornecedor) {
+        alert("Por favor, preencha o CNPJ do Fornecedor.");
+        document.getElementById("cnpjFornecedor").focus();
+        return;
+    }
+    if (!validarCnpj(cnpjFornecedor)) {
+        alert("CNPJ do fornecedor inválido. Digite um CNPJ válido com 14 dígitos.");
+        document.getElementById("cnpjFornecedor").focus();
+        return;
+    }
+    if (!valorTotal) {
+        alert("Por favor, informe o Valor Total (ex: 150,00).");
+        document.getElementById("valorTotal").focus();
+        return;
+    }
+    if (!dataVencimento) {
+        alert("Por favor, selecione a Data de Vencimento.");
+        document.getElementById("dataVencimento").focus();
+        return;
+    }
+
     const btnAtualizar = document.getElementById("btnAtualizarPagamento") || document.querySelector("button[onclick*='atualizarPagamento']");
     const textoOriginal = btnAtualizar ? btnAtualizar.textContent : "Atualizar";
 
     const formData = new FormData();
-    formData.append("razaoSocialPagador", document.getElementById("razaoSocialPagador").value);
-    formData.append("cnpjPagador", document.getElementById("cnpjPagador").value);
-    formData.append("fornecedor", document.getElementById("fornecedor").value);
-    formData.append("cnpjFornecedor", document.getElementById("cnpjFornecedor").value);
-    formData.append("valorTotal", document.getElementById("valorTotal").value);
-    formData.append("dataVencimento", document.getElementById("dataVencimento").value);
-    formData.append("observacoes", document.getElementById("observacoes").value);
+    formData.append("razaoSocialPagador", razaoSocialPagador);
+    formData.append("cnpjPagador", cnpjPagador);
+    formData.append("fornecedor", fornecedor);
+    formData.append("cnpjFornecedor", cnpjFornecedor);
+    formData.append("valorTotal", valorTotal);
+    formData.append("dataVencimento", dataVencimento);
+    formData.append("observacoes", observacoes);
 
     const arquivoInput = document.getElementById("anexo");
     if (arquivoInput.files && arquivoInput.files.length > 0) {
@@ -122,22 +234,11 @@ async function atualizarPagamento() {
             alert(dados.mensagem || "Pagamento atualizado com sucesso!");
             window.location.href = "listagem.html";
         } else {
-            let mensagemErro = "Erro ao atualizar o pagamento.";
-            try {
-                const erro = await resposta.json();
-                if (erro && erro.mensagem) {
-                    mensagemErro = erro.mensagem;
-                }
-            } catch {
-                const textoErro = await resposta.text();
-                if (textoErro) {
-                    mensagemErro = textoErro;
-                }
-            }
+            const mensagemErro = await extrairMensagemErro(resposta, "Erro ao atualizar o pagamento.");
             alert("Erro ao atualizar: " + mensagemErro);
         }
     } catch (erro) {
-        alert("Não foi possível conectar à API.");
+        alert("Não foi possível conectar à API. Verifique se ela está rodando.");
         console.error(erro);
     } finally {
         atualizandoPagamento = false;
