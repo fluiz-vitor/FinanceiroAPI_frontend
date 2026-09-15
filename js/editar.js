@@ -5,6 +5,108 @@ function obterIdDaUrl() {
     return parametros.get("id");
 }
 
+// Formata o CNPJ progressivamente conforme a digitação: 00.000.000/0000-00
+function formatarCnpjDinamico(valor) {
+    if (!valor) return "";
+    const numeros = valor.replace(/\D/g, "").slice(0, 14);
+    if (numeros.length <= 2) return numeros;
+    if (numeros.length <= 5) return numeros.replace(/^(\d{2})(\d+)/, "$1.$2");
+    if (numeros.length <= 8) return numeros.replace(/^(\d{2})(\d{3})(\d+)/, "$1.$2.$3");
+    if (numeros.length <= 12) return numeros.replace(/^(\d{2})(\d{3})(\d{3})(\d+)/, "$1.$2.$3/$4");
+    return numeros.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d+)/, "$1.$2.$3/$4-$5");
+}
+
+// Formata valor monetário da direita para a esquerda (estilo caixa eletrônico)
+function formatarMoedaDireitaParaEsquerda(valor) {
+    const digitos = (valor || "").toString().replace(/\D/g, "");
+    if (!digitos || digitos === "0" || digitos === "00") {
+        return "0,00";
+    }
+    const numeroLimpo = digitos.replace(/^0+/, "");
+    if (!numeroLimpo) return "0,00";
+
+    if (numeroLimpo.length === 1) {
+        return `0,0${numeroLimpo}`;
+    }
+    if (numeroLimpo.length === 2) {
+        return `0,${numeroLimpo}`;
+    }
+
+    const inteira = numeroLimpo.slice(0, -2);
+    const centavos = numeroLimpo.slice(-2);
+    const inteiraFormatada = inteira.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return `${inteiraFormatada},${centavos}`;
+}
+
+function posicionarCursorNoFinal(input) {
+    if (input && input.setSelectionRange) {
+        const len = input.value.length;
+        input.setSelectionRange(len, len);
+    }
+}
+
+function configurarMascaraCnpj(campo) {
+    if (!campo) return;
+    campo.setAttribute("autocomplete", "off");
+    campo.setAttribute("inputmode", "numeric");
+    campo.setAttribute("maxlength", "18");
+
+    campo.addEventListener("input", () => {
+        campo.value = formatarCnpjDinamico(campo.value);
+    });
+
+    campo.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace") {
+            const pos = campo.selectionStart;
+            if (pos > 0 && [".", "/", "-"].includes(campo.value[pos - 1])) {
+                e.preventDefault();
+                const antes = campo.value.slice(0, pos - 2);
+                const depois = campo.value.slice(pos);
+                campo.value = formatarCnpjDinamico(antes + depois);
+                const novaPos = Math.max(0, pos - 2);
+                campo.setSelectionRange(novaPos, novaPos);
+            }
+        }
+    });
+
+    campo.addEventListener("blur", () => {
+        campo.value = formatarCnpjDinamico(campo.value);
+    });
+}
+
+function configurarMascaraMoeda(campo) {
+    if (!campo) return;
+    campo.setAttribute("autocomplete", "off");
+    campo.setAttribute("inputmode", "numeric");
+
+    const preencherSeVazio = () => {
+        if (!campo.value || !campo.value.trim()) {
+            campo.value = "0,00";
+        }
+        setTimeout(() => posicionarCursorNoFinal(campo), 0);
+    };
+
+    campo.addEventListener("focus", preencherSeVazio);
+    campo.addEventListener("click", preencherSeVazio);
+
+    campo.addEventListener("input", () => {
+        campo.value = formatarMoedaDireitaParaEsquerda(campo.value);
+        posicionarCursorNoFinal(campo);
+    });
+}
+
+function inicializarMascaras() {
+    configurarMascaraCnpj(document.getElementById("cnpjPagador"));
+    configurarMascaraCnpj(document.getElementById("cnpjFornecedor"));
+    configurarMascaraMoeda(document.getElementById("valorTotal"));
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", inicializarMascaras);
+} else {
+    inicializarMascaras();
+}
+
 function validarCnpj(cnpj) {
     if (!cnpj) return false;
     const numeros = cnpj.replace(/\D/g, "");
@@ -31,15 +133,10 @@ function validarCnpj(cnpj) {
     return numeros.endsWith(`${digito1}${digito2}`);
 }
 
-function normalizarValor(valor) {
+function normalizarValorParaEnvio(valor) {
     if (!valor) return "";
     let v = valor.trim().replace(/^R\$\s?/, "");
-    if (v.includes(".") && !v.includes(",")) {
-        const partes = v.split(".");
-        if (partes.length === 2 && partes[1].length <= 2) {
-            v = `${partes[0]},${partes[1]}`;
-        }
-    }
+    v = v.replace(/\./g, "");
     return v;
 }
 
@@ -106,10 +203,17 @@ async function carregarDadosParaEdicao() {
         const pagamento = await resposta.json();
 
         document.getElementById("razaoSocialPagador").value = pagamento.razaoSocialPagador || "";
-        document.getElementById("cnpjPagador").value = pagamento.cnpjPagador || "";
+        document.getElementById("cnpjPagador").value = formatarCnpjDinamico(pagamento.cnpjPagador || "");
         document.getElementById("fornecedor").value = pagamento.fornecedor || "";
-        document.getElementById("cnpjFornecedor").value = pagamento.cnpjFornecedor || "";
-        document.getElementById("valorTotal").value = pagamento.valorTotal != null ? pagamento.valorTotal.toString().replace(".", ",") : "";
+        document.getElementById("cnpjFornecedor").value = formatarCnpjDinamico(pagamento.cnpjFornecedor || "");
+
+        if (pagamento.valorTotal != null) {
+            const centavosString = Math.round(Number(pagamento.valorTotal) * 100).toString();
+            document.getElementById("valorTotal").value = formatarMoedaDireitaParaEsquerda(centavosString);
+        } else {
+            document.getElementById("valorTotal").value = "";
+        }
+
         document.getElementById("observacoes").value = pagamento.observacoes || "";
 
         if (pagamento.dataVencimento) {
@@ -146,7 +250,7 @@ async function atualizarPagamento() {
     const fornecedor = document.getElementById("fornecedor").value.trim();
     const cnpjFornecedor = document.getElementById("cnpjFornecedor").value.trim();
     const valorTotalRaw = document.getElementById("valorTotal").value;
-    const valorTotal = normalizarValor(valorTotalRaw);
+    const valorTotal = normalizarValorParaEnvio(valorTotalRaw);
     const dataVencimento = document.getElementById("dataVencimento").value.trim();
     const observacoes = document.getElementById("observacoes").value.trim();
 
@@ -180,8 +284,10 @@ async function atualizarPagamento() {
         document.getElementById("cnpjFornecedor").focus();
         return;
     }
-    if (!valorTotal) {
-        alert("Por favor, informe o Valor Total (ex: 150,00).");
+
+    const digitosValor = (valorTotalRaw || "").replace(/\D/g, "");
+    if (!digitosValor || parseInt(digitosValor, 10) === 0) {
+        alert("Por favor, informe um Valor Total maior que zero.");
         document.getElementById("valorTotal").focus();
         return;
     }
@@ -251,6 +357,10 @@ async function atualizarPagamento() {
 
 function limparFormulario() {
     document.getElementById("formPagamentos").reset();
+    const campoValor = document.getElementById("valorTotal");
+    if (campoValor) {
+        campoValor.value = "";
+    }
 }
 
 carregarDadosParaEdicao();
